@@ -56,4 +56,8 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.send('You do not have the correct role for this command.')
 
-bot.run(TOKEN)
+try:
+    bot.run(TOKEN)
+except Exception as error:
+    TOKEN = os.environ.get('DISCORD_TOKEN')
+    bot.run(TOKEN)
