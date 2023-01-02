@@ -12,7 +12,7 @@ GUILD = os.getenv('DISCORD_GUILD')
 
 intents = Intents.all()
 
-bot = commands.Bot(command_prefix='!')
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
