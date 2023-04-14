@@ -1,9 +1,11 @@
+import datetime
+import json
 import os
 import random
 
 from discord import Intents
 from discord import utils as discord_utils
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,7 +14,34 @@ GUILD = os.getenv('DISCORD_GUILD')
 
 intents = Intents.all()
 
+concert_time = datetime.time(hour=15, minute=30, tzinfo=datetime.timezone.utc)
+
 bot = commands.Bot(command_prefix='!', intents=intents)
+
+@tasks.loop(hours=24)
+async def auto_report_concerts():
+    print('Would run now')
+    pass
+
+@auto_report_concerts.before_loop
+
+@bot.command(name='concert')
+async def concert_command(ctx):
+    concerts = []
+    with open('concerts.json', 'r') as f:
+        data = json.load(f)
+        for key in data['artists']:
+            if data['artists'][key]['meta']['total'] > 0:
+                artist = key
+                date = data['artists'][key]['events'][0]['datetime_az']
+                venue = data['artists'][key]['events'][0]['venue']['name']
+                price = data['artists'][key]['events'][0]['stats']['lowest_price_good_deals']
+                info = f'{artist} is playing on {date} at {venue} with a good deal price of {price}'
+                concerts.append(info)
+    message = 'The following concerts are available:'
+    for i in concerts:
+        message = message + '\n' + i
+    await ctx.send(message)
 
 @bot.event
 async def on_ready():
@@ -49,8 +78,6 @@ async def create_channel(ctx, channel_name='real-python'):
         print(f'Creating a new channel: {channel_name}')
         await guild.create_text_channel(channel_name)
 
-bot.run(TOKEN)
-
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
@@ -61,3 +88,5 @@ try:
 except Exception as error:
     TOKEN = os.environ.get('DISCORD_TOKEN')
     bot.run(TOKEN)
+
+auto_report_concerts.start()
