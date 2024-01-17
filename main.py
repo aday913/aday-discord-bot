@@ -118,7 +118,7 @@ async def on_ready():
 
 if __name__ == '__main__':
 
-    logging.basicConfig(level=logging.info)
+    logging.basicConfig(level=logging.INFO)
 
     log = logging.getLogger(__name__)
 
