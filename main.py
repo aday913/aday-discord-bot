@@ -10,6 +10,8 @@ from discord import utils as discord_utils
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
+log = logging.getLogger(__name__)
+
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
@@ -22,7 +24,10 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 try:
     with open('/data/user_to_json.json', 'r') as f:
         user_to_json = json.load(f)
+        log.info("Imported existing user_to_json.json file for mappings")
 except FileNotFoundError:
+    log.warning(
+        "No user_to_json file found, starting an empty dict for mappings")
     user_to_json = {}
 
 # Command to add a user and their JSON file
@@ -122,14 +127,14 @@ async def weekly_concerts():
             except FileNotFoundError:
                 await channel.send(f"Error: JSON file not found for {user_name}.")
     else:
-        print("Channel not found.")
+        log.errro("Channel not found.")
 
 # Start the loop when the bot is ready
 
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user.name}')
+    log.info(f'Logged in as {bot.user.name}')
     weekly_concerts.start()  # Start the scheduled task
 
 
@@ -142,5 +147,6 @@ if __name__ == '__main__':
     try:
         bot.run(TOKEN)
     except Exception as error:
+        print(error)
         TOKEN = os.environ.get('DISCORD_TOKEN')
         bot.run(TOKEN)
