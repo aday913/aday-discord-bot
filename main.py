@@ -19,7 +19,11 @@ intents = Intents.all()
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-user_to_json = {}
+try:
+    with open('/data/user_to_json.json', 'r') as f:
+        user_to_json = json.load(f)
+except FileNotFoundError:
+    user_to_json = {}
 
 # Command to add a user and their JSON file
 
