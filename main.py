@@ -22,13 +22,16 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 user_to_json = {}
 
 # Command to add a user and their JSON file
+
+
 @bot.command(name='concerts')
 async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
     if subcommand == "add":
         # Add or update the user-to-JSON mapping
         user_to_json[user_name] = f'/data/{json_file_name}'
         with open('/data/user_to_json.json', 'w') as f:
-            log.info(f'Adding user {user_name} to concert json file /data/{json_file_name}')
+            log.info(
+                f'Adding user {user_name} to concert json file /data/{json_file_name}')
             json.dump(user_to_json, f, indent=2)
         await ctx.send(f"Linked {user_name} to {json_file_name}.")
 
@@ -43,13 +46,15 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
                     # Process and send concert data
                     # This is a placeholder, you need to format the data according to your JSON structure
                     message = "Upcoming concerts:\n"
-                    for event in data["artists"]["The Smashing Pumpkins"]["events"]:
-                        message += f"{event['datetime_utc']} in {event['venue']['city']}\n"
+                    for artist in data["artists"]:
+                        for event in data["artists"][artist]["events"]:
+                            message += f"{artist}: {event['datetime_utc']} in {event['venue']['city']}\n"
                     await ctx.send(message)
             except FileNotFoundError:
                 await ctx.send("Error: JSON file not found.")
         else:
             await ctx.send(f"No file linked for {user_name}.")
+
 
 @bot.command(name='99')
 async def nine_nine(ctx):
@@ -66,14 +71,17 @@ async def nine_nine(ctx):
     response = random.choice(brooklyn_99_quotes)
     await ctx.send(response)
 
+
 @bot.command(name='roll_dice', help='Simulates rolling dice.')
 async def roll(ctx, number_of_dice: int, number_of_sides: int):
     dice = [
         str(random.choice(range(1, number_of_sides + 1)))
         for _ in range(number_of_dice)
     ]
-    log.info(f'Someone rolled {number_of_dice} dice with {number_of_sides} sides, got the following dice values: {dice}')
+    log.info(
+        f'Someone rolled {number_of_dice} dice with {number_of_sides} sides, got the following dice values: {dice}')
     await ctx.send(', '.join(dice))
+
 
 @bot.command(name='create-channel')
 @commands.has_role('admin')
@@ -84,15 +92,18 @@ async def create_channel(ctx, channel_name='real-python'):
         print(f'Creating a new channel: {channel_name}')
         await guild.create_text_channel(channel_name)
 
+
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.send('You do not have the correct role for this command.')
 
 # Background task for sending weekly messages
+
+
 @tasks.loop(hours=168)  # 168 hours in a week
 async def weekly_concerts():
-    channel_id = CHANNEL 
+    channel_id = CHANNEL
     channel = bot.get_channel(channel_id)
     if channel is not None:
         for user_name, json_file in user_to_json.items():
@@ -110,6 +121,8 @@ async def weekly_concerts():
         print("Channel not found.")
 
 # Start the loop when the bot is ready
+
+
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
