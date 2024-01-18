@@ -121,7 +121,7 @@ async def on_command_error(ctx, error):
 # Background task for sending weekly messages
 
 
-@tasks.loop(minutes=5)  # 168 hours in a week
+@tasks.loop(hours=168)  # 168 hours in a week
 async def weekly_concerts():
     channel_id = CHANNEL
     channel = bot.get_channel(int(channel_id))
@@ -145,7 +145,7 @@ async def weekly_concerts():
 @bot.event
 async def on_ready():
     log.info(f'Logged in as {bot.user.name}')
-    weekly_concerts.start()  # Start the scheduled task
+    # weekly_concerts.start()  # Start the scheduled task
 
 
 if __name__ == '__main__':
