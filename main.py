@@ -60,16 +60,16 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
             # Load the data from the JSON file
             log.info(f'Fetching concert json data for user {user_name}')
             try:
-                message = "Upcoming concerts:\n"
                 # For every json file linked to the user, we send them every event's artist, date, and venue
                 for file_name in user_to_json[user_name]:
+                    message = f"Upcoming concerts for user @{user_name} from file {file_name}:\n"
                     with open(file_name, 'r') as file:
                         data = json.load(file)
                         # Process and send concert data
                         for artist in data["artists"]:
                             for event in data["artists"][artist]["events"]:
                                 message += f"{artist}: {event['datetime_utc']} in {event['venue']['city']} at {event['venue']['name']}\n"
-                await ctx.send(message)
+                    await ctx.send(message)
             except FileNotFoundError:
                 await ctx.send("Error: JSON file not found.")
         else:
