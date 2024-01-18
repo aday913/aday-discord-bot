@@ -63,7 +63,7 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
                 # For every json file linked to the user, we send them every event's artist, date, and venue
                 for file_name in user_to_json[user_name]:
                     message = f"## Upcoming concerts for user @{user_name} from file {file_name}:\n"
-                    no_events_message = f"## Upcoming concerts for user @{user_name} from file {file_name}:\n"
+                    num_events = 0
                     with open(file_name, 'r') as file:
                         data = json.load(file)
                         # Process and send concert data
@@ -72,8 +72,9 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
                                 continue
                             message += f"**{artist}**: \n"
                             for event in data["artists"][artist]["events"]:
-                                message += f"> *{event['dateime_az']}* in {event['venue']['city']} at {event['venue']['name']}\n"
-                    if message != no_events_message:
+                                num_events += 1 
+                                message += f"> *{event['datetime_local']}* in {event['venue']['city']} at {event['venue']['name']}\n"
+                    if num_events != 0:
                         await ctx.send(message)
             except FileNotFoundError:
                 await ctx.send("Error: JSON file not found.")
