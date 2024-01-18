@@ -37,7 +37,17 @@ except FileNotFoundError:
 async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
     if subcommand == "add":
         # Add or update the user-to-JSON mapping
-        user_to_json[user_name] = f'/data/{json_file_name}'
+
+        # We need to add a new user to the file mappings
+        if user_name not in list(user_to_json.keys()):
+            user_to_json[user_name] = []
+        
+        # We can check if the user is already linked to that json file
+        if f'/data/{json_file_name}' in user_to_json[user_name]:
+            await ctx.send(f'/data/{json_file_name} already linked to {user_name}')
+            return
+        
+        user_to_json[user_name].append(f'/data/{json_file_name}')
         with open('/data/user_to_json.json', 'w') as f:
             log.info(
                 f'Adding user {user_name} to concert json file /data/{json_file_name}')
@@ -50,15 +60,16 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
             # Load the data from the JSON file
             log.info(f'Fetching concert json data for user {user_name}')
             try:
-                with open(user_to_json[user_name], 'r') as file:
-                    data = json.load(file)
-                    # Process and send concert data
-                    # This is a placeholder, you need to format the data according to your JSON structure
-                    message = "Upcoming concerts:\n"
-                    for artist in data["artists"]:
-                        for event in data["artists"][artist]["events"]:
-                            message += f"{artist}: {event['datetime_utc']} in {event['venue']['city']}\n"
-                    await ctx.send(message)
+                message = "Upcoming concerts:\n"
+                # For every json file linked to the user, we send them every event's artist, date, and venue
+                for file_name in user_to_json[user_name]:
+                    with open(user_to_json[user_name], 'r') as file:
+                        data = json.load(file)
+                        # Process and send concert data
+                        for artist in data["artists"]:
+                            for event in data["artists"][artist]["events"]:
+                                message += f"{artist}: {event['datetime_utc']} in {event['venue']['city']} at {event['venue']['name']}\n"
+                await ctx.send(message)
             except FileNotFoundError:
                 await ctx.send("Error: JSON file not found.")
         else:
@@ -113,25 +124,24 @@ async def on_command_error(ctx, error):
 @tasks.loop(hours=168)  # 168 hours in a week
 async def weekly_concerts():
     channel_id = CHANNEL
-    channel = bot.get_channel(channel_id)
+    channel = bot.get_channel(int(channel_id))
     if channel is not None:
-        for user_name, json_file in user_to_json.items():
+        for user_name, json_files in user_to_json.items():
             try:
-                with open(json_file, 'r') as file:
-                    data = json.load(file)
-                    message = f"Weekly update for {user_name}:\n"
-                    # Modify this part to suit your JSON structure and desired message format
-                    for event in data["artists"]["The Smashing Pumpkins"]["events"]:
-                        message += f"{event['datetime_utc']} in {event['venue']['city']}\n"
+                message = f"Weekly update for @{user_name}:\n"
+                for file_name in json_files:
+                    with open(file_name, 'r') as file:
+                        data = json.load(file)
+                        for artist in data["artists"]:
+                            for event in data["artists"][artist]["events"]:
+                                message += f"{artist}: {event['datetime_utc']} in {event['venue']['city']} at {event['venue']['name']}\n"
                     await channel.send(message)
             except FileNotFoundError:
                 await channel.send(f"Error: JSON file not found for {user_name}.")
     else:
-        log.errro("Channel not found.")
+        log.error("Channel not found.")
 
 # Start the loop when the bot is ready
-
-
 @bot.event
 async def on_ready():
     log.info(f'Logged in as {bot.user.name}')
