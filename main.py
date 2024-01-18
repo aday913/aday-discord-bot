@@ -63,7 +63,7 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
                 message = "Upcoming concerts:\n"
                 # For every json file linked to the user, we send them every event's artist, date, and venue
                 for file_name in user_to_json[user_name]:
-                    with open(user_to_json[user_name], 'r') as file:
+                    with open(file_name, 'r') as file:
                         data = json.load(file)
                         # Process and send concert data
                         for artist in data["artists"]:
