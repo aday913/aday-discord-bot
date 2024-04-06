@@ -77,7 +77,10 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
                             for event in data["artists"][artist]["events"]:
                                 num_events += 1
                                 message += f"> *{event['datetime_local']}* in {event['venue']['city']} at {event['venue']['name']}\n"
-                    if num_events != 0:
+                            if len(message) > 1000 and num_events != 0:
+                                await ctx.send(message)
+                                message = ""
+                    if num_events != 0 and message != "":
                         await ctx.send(message)
             except FileNotFoundError:
                 await ctx.send("Error: JSON file not found.")
@@ -145,7 +148,7 @@ async def weekly_concerts():
                         for artist in data["artists"]:
                             for event in data["artists"][artist]["events"]:
                                 message += f"{artist}: {event['datetime_utc']} in {event['venue']['city']} at {event['venue']['name']}\n"
-                                if len(message) > 1500:
+                                if len(message) > 1000:
                                     await channel.send(message)
                                     message = ""
                     if message != "":
