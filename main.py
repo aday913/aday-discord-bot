@@ -62,14 +62,17 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
             try:
                 # For every json file linked to the user, we send them every event's artist, date, and venue
                 for file_name in user_to_json[user_name]:
+                    log.info(f"Reading file {file_name}")
                     message = f"## Upcoming concerts for user @{user_name} from file {file_name}:\n"
                     num_events = 0
                     with open(file_name, "r") as file:
+                        log.debug(f"Loaded file with name {file_name}")
                         data = json.load(file)
                         # Process and send concert data
                         for artist in data["artists"]:
                             if len(data["artists"][artist]["events"]) == 0:
                                 continue
+                            log.info(f"Artist {artist} has events...")
                             message += f"**{artist}**: \n"
                             for event in data["artists"][artist]["events"]:
                                 num_events += 1
