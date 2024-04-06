@@ -145,7 +145,11 @@ async def weekly_concerts():
                         for artist in data["artists"]:
                             for event in data["artists"][artist]["events"]:
                                 message += f"{artist}: {event['datetime_utc']} in {event['venue']['city']} at {event['venue']['name']}\n"
-                    await channel.send(message)
+                                if len(message) > 1500:
+                                    await channel.send(message)
+                                    message = ""
+                    if message != "":
+                        await channel.send(message)
             except FileNotFoundError:
                 await channel.send(f"Error: JSON file not found for {user_name}.")
     else:
@@ -160,7 +164,7 @@ async def on_ready():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
     log = logging.getLogger(__name__)
 
