@@ -76,7 +76,13 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
                             message += f"**{artist}**: \n"
                             for event in data["artists"][artist]["events"]:
                                 num_events += 1
-                                message += f"> *{event['datetime_local']}* in {event['venue']['city']} at {event['venue']['name']}\n"
+                                concert_datetime = datetime.datetime.strptime(
+                                    event["datetime_local"].split("T")[0], "%Y-%m-%d"
+                                )
+                                formatted_date = datetime.datetime.strftime(
+                                    concert_datetime, "%A %B %d, %Y"
+                                )
+                                message += f"> *{formatted_date}* in {event['venue']['city']} at {event['venue']['name']}\n"
                             if len(message) > 1000 and num_events != 0:
                                 await ctx.send(message)
                                 message = ""
