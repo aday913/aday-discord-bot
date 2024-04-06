@@ -92,6 +92,14 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
                 await ctx.send("Error: JSON file not found.")
         else:
             await ctx.send(f"No file linked for {user_name}.")
+    elif subcommand == "files":
+        message = "The following files are available to watch:"
+        for f in os.listdir("/data/"):
+            if "concert" not in f:
+                continue
+            message += f"\n{f}"
+        if message != "The following files are available to watch:":
+            await ctx.send(message)
 
 
 @bot.command(name="99")
