@@ -112,6 +112,7 @@ async def get_artists(ctx, filename: str):
             data = json.load(file)
             for artist in data["artists"]:
                 all_artists.append(artist)
+        all_artists.sort()
         message = message + "\n".join(all_artists)
         await ctx.send(message)
     except Exception as error:
