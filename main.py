@@ -102,31 +102,30 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
             await ctx.send(message)
 
 
-@bot.command(name="99")
-async def nine_nine(ctx):
-    log.info(f"Someone is asking for a 99 quote...")
-    brooklyn_99_quotes = [
-        "I'm the human form of the 💯 emoji.",
-        "Bingpot!",
-        (
-            "Cool. Cool cool cool cool cool cool cool, "
-            "no doubt no doubt no doubt no doubt."
-        ),
-    ]
+@bot.command(name="artists", help="Get all artists from a concert json file")
+async def get_artists(ctx, filename: str):
+    try:
+        log.info(f"Fetching artists from file {filename}")
+        message = f"Here are all of the artists in the file {filename}:\n"
+        all_artists = []
+        with open(filename, "r") as file:
+            data = json.load(file)
+            for artist in data["artists"]:
+                all_artists.append(artist)
+        message = message + "\n".join(all_artists)
+        await ctx.send(message)
+    except Exception as error:
+        log.error(f"Error when trying to get artists from file: {error}")
+        await ctx.send("Sorry, I had trouble getting the info for that!")
 
-    response = random.choice(brooklyn_99_quotes)
-    await ctx.send(response)
 
-
-@bot.command(name="roll_dice", help="Simulates rolling dice.")
-async def roll(ctx, number_of_dice: int, number_of_sides: int):
-    dice = [
-        str(random.choice(range(1, number_of_sides + 1))) for _ in range(number_of_dice)
-    ]
-    log.info(
-        f"Someone rolled {number_of_dice} dice with {number_of_sides} sides, got the following dice values: {dice}"
+@bot.command(
+    name="sources", help="Provides links to the github repos for the server's bots"
+)
+async def get_sources(ctx):
+    await ctx.send(
+        "Here is a link to Jarvis' source code: https://github.com/aday913/aday-discord-bot\nAnd here is alink to GeminiBot's source code: https://github.com/aday913/gemini-discord-bot"
     )
-    await ctx.send(", ".join(dice))
 
 
 @bot.command(name="create-channel")
@@ -143,34 +142,6 @@ async def create_channel(ctx, channel_name="real-python"):
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.send("You do not have the correct role for this command.")
-
-
-# Background task for sending weekly messages
-
-
-@tasks.loop(hours=168)  # 168 hours in a week
-async def weekly_concerts():
-    channel_id = CHANNEL
-    channel = bot.get_channel(int(channel_id))
-    if channel is not None:
-        for user_name, json_files in user_to_json.items():
-            try:
-                message = f"Weekly update for @{user_name}:\n"
-                for file_name in json_files:
-                    with open(file_name, "r") as file:
-                        data = json.load(file)
-                        for artist in data["artists"]:
-                            for event in data["artists"][artist]["events"]:
-                                message += f"{artist}: {event['datetime_utc']} in {event['venue']['city']} at {event['venue']['name']}\n"
-                                if len(message) > 1000:
-                                    await channel.send(message)
-                                    message = ""
-                    if message != "":
-                        await channel.send(message)
-            except FileNotFoundError:
-                await channel.send(f"Error: JSON file not found for {user_name}.")
-    else:
-        log.error("Channel not found.")
 
 
 # Start the loop when the bot is ready
