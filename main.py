@@ -105,10 +105,10 @@ async def concerts(ctx, subcommand, user_name=None, json_file_name=None):
 @bot.command(name="artists", help="Get all artists from a concert json file")
 async def get_artists(ctx, filename: str):
     try:
-        log.info(f"Fetching artists from file {filename}")
+        log.info(f"Fetching artists from file /data/{filename}")
         message = f"Here are all of the artists in the file {filename}:\n"
         all_artists = []
-        with open(filename, "r") as file:
+        with open(f"/data/{filename}", "r") as file:
             data = json.load(file)
             for artist in data["artists"]:
                 all_artists.append(artist)
