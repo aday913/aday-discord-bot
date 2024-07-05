@@ -2,12 +2,10 @@ import datetime
 import json
 import logging
 import os
-import random
 
-import asyncio
 from discord import Intents
 from discord import utils as discord_utils
-from discord.ext import commands, tasks
+from discord.ext import commands
 from dotenv import load_dotenv
 
 log = logging.getLogger(__name__)
@@ -16,6 +14,8 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD = os.getenv("DISCORD_GUILD")
 CHANNEL = os.getenv("WEEKLY_CONCERT_CHANNEL")
+
+BOARD_GAME_JSON = "/data/board_game_data.json"
 
 intents = Intents.all()
 
@@ -125,8 +125,77 @@ async def get_artists(ctx, filename: str):
 )
 async def get_sources(ctx):
     await ctx.send(
-        "Here is a link to Jarvis' source code: https://github.com/aday913/aday-discord-bot\nAnd here is alink to GeminiBot's source code: https://github.com/aday913/gemini-discord-bot"
+        "Here is a link to Jarvis' source code: https://github.com/aday913/aday-discord-bot\nHere is alink to GeminiBot's source code: https://github.com/aday913/gemini-discord-bot\nHere is a link to GPT_Bot's source code: https://github.com/aday913/gpt-discord-bot"
     )
+
+
+@bot.command(name="games", help="Get information about board games")
+async def games(ctx, subcommand: str, game_name: str | None = None):
+    games_data = get_game_info()
+    if subcommand == "list":
+        message = "## Here are the available games:\n"
+        for game in games_data:
+            message += f"**{game}**: \n"
+            message += f"> **Tags**: {games_data[game]['Tags']}\n"
+            message += (
+                f"> **Ideal Number of Players**: {games_data[game]['BestNumPlayers']}\n"
+            )
+            if len(message) > 1000:
+                await ctx.send(message)
+                message = ""
+        await ctx.send(message)
+    elif subcommand == "info":
+        if game_name is None:
+            await ctx.send("Please provide a game name.")
+            return
+        if game_name.lower() in games_data:
+            message = f"## Here is the information for {game_name}:\n"
+            message += f"**Board Game Geek Rating** (out of 10): {games_data[game_name]['BGG Rating']}\n"
+            message += (
+                f"**Complexity** (out of 5): {games_data[game_name]['Complexity']}\n"
+            )
+            message += f"**Tags**: {games_data[game_name]['Tags']}\n"
+            message += f"**Minmum Age**: {games_data[game_name]['Ages']}\n"
+            message += (
+                f"**Possible Player Counts**: {games_data[game_name]['NumPlayers']}\n"
+            )
+            message += f"**Ideal Number of Players**: {games_data[game_name]['BestNumPlayers']}\n"
+            message += f"**Play Time**: {games_data[game_name]['Time (min)']}\n"
+            message += f"**Description**: {games_data[game_name]['Summary']}\n"
+            message += f"**Link to Board Game Geek**: {games_data[game_name]['URL']}\n"
+            await ctx.send(message)
+        else:
+            await ctx.send(f"Sorry, I don't have information for {game_name}.")
+    elif subcommand == "players":
+        if game_name is None:
+            await ctx.send("Please provide a player count.")
+            return
+        try:
+            _ = int(game_name)
+        except ValueError:
+            await ctx.send("Please provide a valid number of players.")
+            return
+        if int(game_name) < 1:
+            await ctx.send("Please provide a valid number of players.")
+            return
+        num_players = game_name
+        message = f"## Here are the games that support {num_players} players:\n"
+        if int(num_players) >= 6:
+            num_players = "6+"
+        for game in games_data:
+            if num_players in games_data[game]["NumPlayers"]:
+                message += f"**{game}**: \n"
+                message += f"> **Tags**: {games_data[game]['Tags']}\n"
+                message += f"> **Ideal Number of Players**: {games_data[game]['BestNumPlayers']}\n"
+                if len(message) > 1000:
+                    await ctx.send(message)
+                    message = ""
+        await ctx.send(message)
+
+    else:
+        await ctx.send(
+            "Sorry, I don't know that command. Try using !games list to see the available games."
+        )
 
 
 @bot.command(name="create-channel")
@@ -150,6 +219,62 @@ async def on_command_error(ctx, error):
 async def on_ready():
     log.info(f"Logged in as {bot.user.name}")
     # weekly_concerts.start()  # Start the scheduled task
+
+
+def get_game_info() -> dict:
+    """
+    Get all the board game data from the Notion database json file and return it as a dictionary
+    """
+    data = {}
+    try:
+        with open(BOARD_GAME_JSON, "r") as file:
+            raw_data = json.load(file)
+    except FileNotFoundError:
+        log.error(f"File {BOARD_GAME_JSON} not found")
+        return data
+
+    for game in raw_data["results"]:
+        try:
+            name = game["proprties"]["Name"]["title"][0]["plain_text"].lower()
+        except Exception as error:
+            log.error(f"Error when trying to get game name: {error}")
+            continue
+        data[name] = {}
+        for property in game["properties"]:
+            try:
+                if property == "Name":
+                    continue
+                if game["properties"][property]["type"] == "select":
+                    data[name][property] = game["properties"][property]["select"][
+                        "name"
+                    ]
+                elif game["properties"][property]["type"] == "multi_select":
+                    data[name][property] = ", ".join(
+                        [
+                            tag["name"]
+                            for tag in game["properties"][property]["multi_select"]
+                        ]
+                    )
+                elif game["properties"][property]["type"] == "number":
+                    data[name][property] = game["properties"][property]["number"]
+                elif game["properties"][property]["type"] == "url":
+                    data[name][property] = game["properties"][property]["url"]
+                elif game["properties"][property]["type"] == "rich_text":
+                    data[name][property] = "".join(
+                        [
+                            text["plain_text"]
+                            for text in game["properties"][property]["rich_text"]
+                        ]
+                    )
+                else:
+                    log.warning(
+                        f"Unknown property type: {game['properties'][property]}"
+                    )
+                    continue
+            except Exception as error:
+                log.error(f"Error when trying to get property {property}: {error}")
+                continue
+    return data
 
 
 if __name__ == "__main__":
