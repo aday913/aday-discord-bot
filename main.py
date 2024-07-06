@@ -137,20 +137,25 @@ async def games(ctx, *, args):
     log.info(f"Games command called with subcommand {subcommand}")
     games_data = get_game_info()
     if str(subcommand) == "list":
+        log.info("Attempting to list all games")
         message = "## Here are the available games:\n"
         for game in games_data:
-            message += f"**{game}**: \n"
-            message += f"> **Tags**: {games_data[game]['Tags']}\n"
+            log.info(f"Adding info from game {game} to message")
+            message += f"### {game.capitalize()}: \n"
+            message += f"> **Tags**: {games_data[game].get('Tags')}\n"
             message += (
-                f"> **Ideal Number of Players**: {games_data[game]['BestNumPlayer']}\n"
+                f"> **Ideal Number of Players**: {games_data[game].get('BestNumPlayer')}\n"
             )
-            message += f"> **Play Time**: {games_data[game_name].get('Time (min)')}\n"
+            message += f"> **Play Time**: {games_data[game].get('Time (min)')}\n"
             if len(message) > 1000:
                 log.info(
                     f"Attempting to send message with length {len(message)}:\n{message}"
                 )
                 await ctx.send(message)
                 message = ""
+        log.info(
+            f"Attempting to send message with length {len(message)}:\n{message}"
+        )
         await ctx.send(message)
     elif subcommand == "info":
         if game_name is None:
@@ -194,9 +199,11 @@ async def games(ctx, *, args):
             num_players = "6+"
         for game in games_data:
             if num_players in games_data[game]["NumPlayers"]:
-                message += f"**{game}**: \n"
-                message += f"> **Tags**: {games_data[game]['Tags']}\n"
-                message += f"> **Ideal Number of Players**: {games_data[game]['BestNumPlayers']}\n"
+                message += f"### {game.capitalize()}: \n"
+                message += f"> **Tags**: {games_data[game].get('Tags')}\n"
+                message += f"> **Complexity** (out of 5): {games_data[game].get('Complexity')}\n"
+                message += f"> **Minmum Age**: {games_data[game].get('Ages')}\n"
+                message += f"> **Play Time**: {games_data[game].get('Time (min)')}\n"
                 if len(message) > 1000:
                     log.info(
                         f"Attempting to send the following message with length {len(message)}:\n{message}"
