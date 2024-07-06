@@ -15,7 +15,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD = os.getenv("DISCORD_GUILD")
 CHANNEL = os.getenv("WEEKLY_CONCERT_CHANNEL")
 
-BOARD_GAME_JSON = "/data/board_game_data.json"
+BOARD_GAME_JSON = "/data/board_games_data.json"
 
 intents = Intents.all()
 
@@ -130,17 +130,25 @@ async def get_sources(ctx):
 
 
 @bot.command(name="games", help="Get information about board games")
-async def games(ctx, subcommand: str, game_name: str | None = None):
+async def games(ctx, *, args):
+    log.info(f"Provided the following args: {args}")
+    subcommand = args.split(" ")[0].strip().lower()
+    game_name = " ".join(args.split(" ")[1:])
+    log.info(f"Games command called with subcommand {subcommand}")
     games_data = get_game_info()
-    if subcommand == "list":
+    if str(subcommand) == "list":
         message = "## Here are the available games:\n"
         for game in games_data:
             message += f"**{game}**: \n"
             message += f"> **Tags**: {games_data[game]['Tags']}\n"
             message += (
-                f"> **Ideal Number of Players**: {games_data[game]['BestNumPlayers']}\n"
+                f"> **Ideal Number of Players**: {games_data[game]['BestNumPlayer']}\n"
             )
+            message += f"> **Play Time**: {games_data[game_name].get('Time (min)')}\n"
             if len(message) > 1000:
+                log.info(
+                    f"Attempting to send message with length {len(message)}:\n{message}"
+                )
                 await ctx.send(message)
                 message = ""
         await ctx.send(message)
@@ -148,21 +156,23 @@ async def games(ctx, subcommand: str, game_name: str | None = None):
         if game_name is None:
             await ctx.send("Please provide a game name.")
             return
-        if game_name.lower() in games_data:
+        game_name = game_name.strip().lower()
+        if games_data.get(game_name):
             message = f"## Here is the information for {game_name}:\n"
-            message += f"**Board Game Geek Rating** (out of 10): {games_data[game_name]['BGG Rating']}\n"
+            message += f"**Board Game Geek Rating** (out of 10): {games_data[game_name].get('BGG Rating')}\n"
+            message += f"**Complexity** (out of 5): {games_data[game_name].get('Complexity')}\n"
+            message += f"**Tags**: {games_data[game_name].get('Tags')}\n"
+            message += f"**Minmum Age**: {games_data[game_name].get('Ages')}\n"
+            message += f"**Possible Player Counts**: {games_data[game_name].get('NumPlayers')}\n"
+            message += f"**Ideal Number of Players**: {games_data[game_name].get('BestNumPlayer')}\n"
+            message += f"**Play Time**: {games_data[game_name].get('Time (min)')}\n"
+            message += f"**Description**: {games_data[game_name].get('Summary')}\n"
             message += (
-                f"**Complexity** (out of 5): {games_data[game_name]['Complexity']}\n"
+                f"**Link to Board Game Geek**: {games_data[game_name].get('URL')}\n"
             )
-            message += f"**Tags**: {games_data[game_name]['Tags']}\n"
-            message += f"**Minmum Age**: {games_data[game_name]['Ages']}\n"
-            message += (
-                f"**Possible Player Counts**: {games_data[game_name]['NumPlayers']}\n"
+            log.info(
+                f"Attempting to send the following message with length {len(message)}:\n{message}"
             )
-            message += f"**Ideal Number of Players**: {games_data[game_name]['BestNumPlayers']}\n"
-            message += f"**Play Time**: {games_data[game_name]['Time (min)']}\n"
-            message += f"**Description**: {games_data[game_name]['Summary']}\n"
-            message += f"**Link to Board Game Geek**: {games_data[game_name]['URL']}\n"
             await ctx.send(message)
         else:
             await ctx.send(f"Sorry, I don't have information for {game_name}.")
@@ -188,8 +198,14 @@ async def games(ctx, subcommand: str, game_name: str | None = None):
                 message += f"> **Tags**: {games_data[game]['Tags']}\n"
                 message += f"> **Ideal Number of Players**: {games_data[game]['BestNumPlayers']}\n"
                 if len(message) > 1000:
+                    log.info(
+                        f"Attempting to send the following message with length {len(message)}:\n{message}"
+                    )
                     await ctx.send(message)
                     message = ""
+        log.info(
+            f"Attempting to send the following message with length {len(message)}:\n{message}"
+        )
         await ctx.send(message)
 
     else:
@@ -225,6 +241,7 @@ def get_game_info() -> dict:
     """
     Get all the board game data from the Notion database json file and return it as a dictionary
     """
+    log.info("Calling get_game_info function")
     data = {}
     try:
         with open(BOARD_GAME_JSON, "r") as file:
@@ -235,7 +252,7 @@ def get_game_info() -> dict:
 
     for game in raw_data["results"]:
         try:
-            name = game["proprties"]["Name"]["title"][0]["plain_text"].lower()
+            name = game["properties"]["Name"]["title"][0]["plain_text"].lower()
         except Exception as error:
             log.error(f"Error when trying to get game name: {error}")
             continue
@@ -274,11 +291,18 @@ def get_game_info() -> dict:
             except Exception as error:
                 log.error(f"Error when trying to get property {property}: {error}")
                 continue
+    log.info(f"Found the following game names: {', '.join([i for i in data.keys()])}")
+    props = []
+    for name in data:
+        for property in data[name]:
+            if property not in props:
+                props.append(property)
+    log.info(f"Found the following properties: {', '.join([i for i in props])}")
     return data
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     log = logging.getLogger(__name__)
 
