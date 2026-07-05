@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import datetime
 import json
 import logging
@@ -7,6 +9,7 @@ from discord import Intents
 from discord import utils as discord_utils
 from discord.ext import commands
 from dotenv import load_dotenv
+from yt_dlp import YoutubeDL
 
 log = logging.getLogger(__name__)
 
@@ -236,6 +239,39 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.send("You do not have the correct role for this command.")
 
+
+@bot.command(
+    name="yt", help="Download a Youtube video and save it to the server's data folder (admin only)"
+)
+async def get_sources(ctx):
+    if not ctx.author.guild_permissions.administrator:
+        await ctx.send("You do not have permission to use this command.")
+        return
+    if not os.path.exists("/data/yt_downloads"):
+        await ctx.send("The /data/yt_downloads folder does not exist, cannot download videos.")
+        return
+    video_url = ctx.message.content.split(" ")[1]
+    ydl_opts = {
+        # Download best video combined with best audio, or best standalone file
+        'format': 'bestvideo+bestaudio/best',
+        
+        # Restrict filenames to only ASCII characters and avoid spaces
+        'restrictfilenames': True,
+        
+        # Save files to a 'downloads' folder with a custom name format
+        'outtmpl': '/data/yt_downloads/%(title)s.%(ext)s',
+        
+        # Silences terminal logs except for errors
+        'quiet': False,             
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        try:
+            ydl.download([video_url])
+            await ctx.send(f"Downloaded video from {video_url} to /data/yt_downloads.")
+        except Exception as e:
+            log.error(f"Error downloading video: {e}")
+            await ctx.send(f"Failed to download video from the provided url: {e}")
+    return
 
 # Start the loop when the bot is ready
 @bot.event
